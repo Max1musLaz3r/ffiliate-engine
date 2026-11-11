@@ -10,7 +10,7 @@ import hashlib
 import hmac
 import sqlite3
 
-from .config import HMAC_HEADER, IDEMPOTENCY_HEADER
+from config import HMAC_HEADER, IDEMPOTENCY_HEADER
 
 
 def compute_signature(secret: str, raw_body: bytes) -> str:

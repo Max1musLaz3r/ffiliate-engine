@@ -19,7 +19,7 @@ commission; the shortfall is not carried forward in this prototype).
 import json
 import sqlite3
 
-from .config import CPA_TIERS, NGR_TIERS
+from config import CPA_TIERS, NGR_TIERS
 
 
 def _marginal_bands(amount: float, tiers: list[tuple[float, float]]):

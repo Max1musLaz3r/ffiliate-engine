@@ -20,8 +20,8 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from .btc import validate_btc_address
-from .config import DEMO_BTC_USD_RATE, MIN_PAYOUT_USD
+from btc import validate_btc_address
+from config import DEMO_BTC_USD_RATE, MIN_PAYOUT_USD
 
 
 # --- Gateway adapter ---------------------------------------------------------

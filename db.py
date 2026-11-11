@@ -8,7 +8,7 @@ can reconstruct any affiliate's balance from source events.
 import os
 import sqlite3
 
-from .config import DB_PATH
+from config import DB_PATH
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS affiliates (

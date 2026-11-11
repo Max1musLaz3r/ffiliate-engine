@@ -18,7 +18,7 @@ Flags live in `fraud_flags` and are cleared only by a human review.
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
-from .config import (
+from config import (
     CHURN_LOW_WAGER_RATIO,
     CHURN_WINDOW_DAYS,
     DUPLICATE_IP_WINDOW_HOURS,
