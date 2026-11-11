@@ -1,0 +1,16 @@
+# Render Blueprint — Affiliate Engine (free tier)
+# Deploy: connect this repo on Render, or use the Blueprint deploy.
+# The service binds 0.0.0.0:$PORT and serves GET /health.
+services:
+  - type: web
+    name: affiliate-engine
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn affiliate_engine.server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: POSTBACK_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
