@@ -17,12 +17,14 @@ over the raw body in the X-Postback-Signature header, and an idempotency key
 in X-Idempotency-Key (or the JSON body). Failed signatures and malformed
 payloads go to the dead-letter table and are never processed.
 """
+import base64
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, Header, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 import fraud
 from commissions import calculate_monthly_commissions
@@ -89,6 +91,61 @@ async def _guard(request: Request, event_type: str):
 @app.get("/health")
 def health():
     return {"status": "ok", "db": DB_PATH}
+
+
+# --- Short-link redirect -----------------------------------------------------
+# Short links are minted by the conversion layer as
+#   {SHORT_HOST}/r/{code}?t={base64url(target)}
+# The code is cosmetic (the target travels in `t`); the redirect is
+# stateless — no DB lookup, no token. Only https targets on allowlisted
+# offer hosts are accepted, so the endpoint cannot be used as an open
+# redirector. The /r/ prefix keeps it clear of /health, /dashboard/*,
+# /postback/* and /admin/*.
+
+# Hosts of the real_url values in affiliate-marketing/data/offers.json,
+# plus bet105.ag (its referral link is live though offers.json has no
+# real_url recorded for it yet). A leading "www." is ignored on match.
+REDIRECT_ALLOWED_HOSTS = frozenset({
+    "app.shortmake.com",
+    "go.shakepay.com",
+    "rakuten.ca",
+    "bet105.ag",
+})
+
+
+def _decode_redirect_target(encoded: str | None) -> str | None:
+    """Decode the `t` query param and validate it as a redirect target.
+
+    Returns the target URL, or None when it is missing, undecodable,
+    not https, or on a host outside the allowlist.
+    """
+    if not encoded:
+        return None
+    try:
+        padded = encoded + "=" * (-len(encoded) % 4)
+        target = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return None
+    parsed = urlparse(target)
+    if parsed.scheme != "https" or not parsed.netloc:
+        return None
+    host = parsed.hostname or ""
+    if host.startswith("www."):
+        host = host[4:]
+    if host not in REDIRECT_ALLOWED_HOSTS:
+        return None
+    return target
+
+
+@app.get("/r/{code}")
+def redirect_short_link(code: str, t: str | None = None):
+    target = _decode_redirect_target(t)
+    if target is None:
+        return JSONResponse(
+            {"status": "rejected",
+             "reason": "invalid or disallowed redirect target"},
+            status_code=400)
+    return RedirectResponse(url=target, status_code=302)
 
 
 @app.post("/postback/click")
